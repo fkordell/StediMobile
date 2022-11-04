@@ -1,10 +1,11 @@
 import React, { useEffect, useState, } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, AsyncStorage, TextInput, Button } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, Button } from 'react-native';
 import  Navigation from './components/Navigation';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import OnboardingScreen from './screens/OnboardingScreen';
 import Home from './screens/Home';
 import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
@@ -12,9 +13,9 @@ import { NavigationContainer } from '@react-navigation/native';
 
 const AppStack = createNativeStackNavigator();
 const loggedInStates={
-  NOT_LOGGED_IN: 'Not Logged In',
-  LOGGED_IN: 'Logged In',
-  CODE_SENT: 'Code Sent'
+  NOT_LOGGED_IN: 'NOT_LOGGED_IN',
+  LOGGED_IN: 'LOGGED_IN',
+  CODE_SENT: 'CODE_SENT'
 }
 
 const App = () =>{
@@ -47,7 +48,7 @@ return(
           style={styles.button}
           onPress={async()=>{
             console.log('Button was pressed!')
-            await fetch('https://dev.stedi.me/twofactorlogin/'+phoneNumber,
+            const textResponse=await fetch('https://dev.stedi.me/twofactorlogin/'+phoneNumber,
             {
               method:'POST',
               headers:{
@@ -57,6 +58,7 @@ return(
 
 
             )
+            console.log("text response",textResponse.status)
           setLoggedInState(loggedInStates.CODE_SENT)
           }
           }
@@ -81,19 +83,25 @@ return(
         title='Send'
           style={styles.button}
           onPress={async()=>{
-            console.log('Login Button was pressed!')
-            await fetch('https://dev.stedi.me/twofactorlogin',
-            {
+            console.log('Login Button was pressed')
+            const loginResponse=await fetch("https://dev.stedi.me/twofactorlogin", {
               method:'POST',
               headers:{
                 'content-type':'application/text'
-              }
-              body:
+              },
+              body: JSON.stringify({
+                phoneNumber: phoneNumber,
+                oneTimePassword: oneTimePassword
+              })
+            });
+            if(loginResponse.status==200){
+              const sessionToken=await loginResponse.text();
+              console.log("session Token",sessionToken)
+              await AsyncStorage.setItem("sessionToken",sessionToken)
+              setLoggedInState(loggedInStates.LOGGED_IN);
+            } else{
+              setLoggedInState(loggedInStates.NOT_LOGGED_IN);
             }
-
-
-            )
-          setLoggedInState(loggedInStates.CODE_SENT)
           }
           }
         />
